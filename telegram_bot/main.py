@@ -1,7 +1,6 @@
 from aiogram import executor
 
-from loader import dp
-import handlers
+from handlers import dp
 
 
 async def on_startup(dp_):
