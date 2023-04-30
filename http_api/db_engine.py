@@ -1,11 +1,14 @@
 import sqlite3
 
 
-db = sqlite3.connect("database.sqlite3")
-cursor = db.cursor()
+def get_connection():
+    db = sqlite3.connect("database.sqlite3", timeout=999)
+    cursor = db.cursor()
+    return db, cursor
 
 
 def create_schema():
+    db, cursor = get_connection()
     cursor.execute("CREATE TABLE IF NOT EXISTS items(id INTEGER PRIMARY KEY, "
                    "name TEXT Unique, count INTEGER DEFAULT 0)")
     cursor.execute("CREATE TABLE IF NOT EXISTS users(user_id INTEGER PRIMARY KEY ,"
@@ -18,3 +21,4 @@ def create_schema():
 
 
 create_schema()
+

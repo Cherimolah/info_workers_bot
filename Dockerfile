@@ -4,9 +4,11 @@ FROM python:3.8-slim-buster
 
 WORKDIR /app
 
-COPY src/requirements.txt requirements.txt
+COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
-COPY src .
+COPY http_api http_api
+COPY telegram_bot telegram_bot
 
-CMD [ "python3", "main.py"]
+CMD ["python3", "http_api/main.py"]
+CMD ["python3", "telegram_bot/main.py"]
