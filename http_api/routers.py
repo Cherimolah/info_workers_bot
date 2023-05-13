@@ -18,3 +18,6 @@ def add_item():
     cursor.execute("INSERT INTO items(name) VALUES(?)", (name,))
     db.commit()
     return json.dumps({"response": "ok"})
+
+
+1
