@@ -1,5 +1,5 @@
 from routers import app
-1
+import models
 
 if __name__ == '__main__':
     app.run()
