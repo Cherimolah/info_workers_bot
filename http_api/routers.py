@@ -1,9 +1,10 @@
 import json
 
 from flask import request
+from sqlalchemy import update, delete, select, func
 
 from loader import app
-from db_engine import get_connection
+from models import db, Item, User, History
 
 
 @app.get("/")
@@ -13,90 +14,91 @@ def index():
 
 @app.post("/add_item")
 def add_item():
-    name = request.args.get("name")
-    db, cursor = get_connection()
-    cursor.execute("INSERT INTO items(name) VALUES(?)", (name,))
+    name = request.json.get("name")
+    item = Item(name)
+    db.session.add(item)
     db.commit()
     return json.dumps({"response": "ok"})
 
 
 @app.post("/create_user")
 def create_user():
-    user_id = request.form.get('user_id')
-    username = request.form.get('username')
-    query = f"INSERT INTO users (user_id, username) VALUES ({user_id}, '{username}')"
-    query_db(query)
-    return f"Пользователь {username} добавлен с ID {user_id} в базу данных."
+    user_id: int = request.json.get('user_id')
+    screen_name = request.json.get('screen_name')
+    full_name = request.json.get("full_name")
+    user = User.query.get(user_id)
+    if not user:
+        user = User(user_id, screen_name, full_name)
+        db.session.add(user)
+        db.session.commit()
+    else:
+        db.session.execute(update(User).where(User.user_id == user_id).values(screen_name=screen_name,
+                                                                              full_name=full_name))
+        db.session.commit()
+    return f"User has ben updated"
 
 
 @app.delete("/delete_item")
-def delete(update, context):
-    item_names = context.args
-    for item_name in item_names:
-        c.execute("SELECT quantity FROM items WHERE name=?", (item_name,))
-        item_quantity = c.fetchone()[0]
-        new_quantity = item_quantity - 1
-        if new_quantity < 0:
-            update.message.reply_text(f'Расходник {item_name} закончился.')
-        else:
-            c.execute("UPDATE items SET quantity=? WHERE name=?", (new_quantity, item_name))
-            conn.commit()
-            update.message.reply_text(f'Расходник {item_name} взят. Осталось: {new_quantity}.')
+def delete_item():
+    item_name: str = request.json.get("item_name")
+    db.session.execute(delete(Item).where(Item.name == item_name))
+    db.session.commit()
+    return "Item deleted"
 
 
 @app.post("/save_history")
 def save_history():
-    user_id = request.args.get("user_id")
-    item_id = request.args.get("item_id")
-    alteration = int(request.args.get("alteration"))
-    history_db.append({"user_id": user_id, "item_id": item_id, "alteration": alteration})
-    items_db[item_id]["quantity"] += alteration
-    return f"История изменений успешно сохранена. Текущее количество расходника: {items_db[item_id]['quantity']}."
+    user_id = request.json.get("user_id")
+    item_name: str = request.json.get("item_nme")
+    alteration: int = request.json.get("alteration")
+    item_id = db.session.execute(
+        select(Item.id).where(Item.name == item_name)
+    ).scalar()
+    history = History(user_id, item_id, alteration)
+    db.session.add(history)
+    db.session.commit()
+    return "History saved"
 
 
-@app.get("/get_history_by_item_id")
+@app.get("/get_history_by_item_name")
 def get_history_by_item_id():
-    item_id = int(request.args.get("item_id"))
-    page = int(request.args.get("page", 1))
-    per_page = 10
-    start_index = (page - 1) * per_page
-    end_index = start_index + per_page
-    history = [entry for entry in history_db if entry["item_id"] == item_id]
-    total_pages = (len(history) - 1) // per_page + 1
-    history_page = history[start_index:end_index]
-    response = f"История изменений для расходника {items_db[item_id]['name']}:"
-    for entry in history_page:
-        if entry["alteration"] > 0:
-            action = "добавил"
-        else:
-            action = "удалил"
-        response += f"\n- Пользователь {entry['user_id']} {action} {abs(entry['alteration'])} единиц. "
-    response += f"\nСтраница {page} из {total_pages}."
-    return response
+    item_name: str = request.json.get("item_name")
+    item_id: int = db.session.execute(
+        select(Item.id).where(Item.name == item_name)
+    ).scalar()
+    page = int(request.json.get("page", 1))
+    response = db.session.execute(
+        select(History, Item.name).where(History.item_id == item_id).offset((page - 1) * 10).limit(10)
+        .join(Item)
+    ).all()
+    count_records = db.session.execute(
+        select(func.count(History.item_id)).where(History.item_id == item_id)
+    ).scalar()
+    count_pages = int(count_records / 10) if count_records % 10 == 0 else int(count_records // 10 + 1)
+    return {"count_pages": count_pages,
+            "history": [{
+                "user_id": story.user_id,
+                "item_name": item_name,
+                "alteration": story.alteration,
+                "created_at": story.created_at
+            } for story, item_name in response]}
 
 
 @app.get("/get_all_items")
 def get_all_items():
-    page = request.args.get('page', 1, type=int)
-    items = Item.query.paginate(page, 10, False)
-    if items.items:
-        output = ''
-        for item in items.items:
-            output += f'{item.name}: {item.quantity}\n'
-        return output
-    else:
-        return 'Предметы не найдены'
-
-
-@app.get("/search_item")
-def search_item():
-    query = request.args.get('query')
-    if not query:
-        return {"Ошибка": "No search query provided"}
-
-    items = []
-    for item in database:
-        if query.lower() in item['name'].lower():
-            items.append(item)
-
-    return {"Доступные расходники": items}
+    page = request.json.get('page', 1)
+    response = db.session.execute(
+        select(History, Item.name).offset((page - 1) * 10).limit(10).join(Item)
+    ).all()
+    count_records = db.session.execute(
+        select(func.count(History.item_id))
+    ).scalar()
+    count_pages = int(count_records / 10) if count_records % 10 == 0 else int(count_records // 10 + 1)
+    return {
+        "count_pages": count_pages,
+        "history": [{
+            "user_id": story.user_id,
+            "item_name": item_name,
+            "alteration": story.alteration,
+            "created_at": story.created_at
+        } for story, item_name in response]}
