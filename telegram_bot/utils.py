@@ -27,6 +27,8 @@ async def send_pagination(event: Message | CallbackQuery, data, reply, payload, 
 
 async def send_list_items(event: Message | CallbackQuery, payload, page: int = 1):
     data = await api_wrapper.get_all_items(page)
+    if not data.items:
+        return await event.answer("Никаких расходников не добавлено")
     reply = f"*Спсиок всех расходников и их количество*\n" \
             f"Страница {data.current_page}/{data.count_pages}\n\n"
     for i, item in enumerate(data.items):
