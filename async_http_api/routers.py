@@ -12,10 +12,10 @@ async def root():
 
 @app.post("/add_item")
 async def add_item(data: AddItem):
-    item = await db.select([Item.id]).where(Item.name == data.name).gino.scalar()
+    item = await db.select([Item.id]).where(Item.name == data.name.lower()).gino.scalar()
     if item:
         return JSONResponse({"error": f"{item.name} already exists"}, status_code=400)
-    await Item.create(name=data.name)
+    await Item.create(name=data.name.lower())
     return JSONResponse({"message": "Item added successfully"})
 
 
@@ -32,7 +32,7 @@ async def create_user(data: CreateUser):
 
 @app.delete("/delete_item")
 async def delete_item(data: DeleteItem):
-    item = await db.select([Item.id]).where(Item.name == data.item_name).gino.scalar()
+    item = await db.select([Item.id]).where(Item.name == data.item_name.lower()).gino.scalar()
     if not item:
         return JSONResponse({"error": "Item does not exist"}, status_code=400)
     await Item.delete.where(Item.id == item).gino.status()
@@ -44,7 +44,7 @@ async def save_history(data: SaveHistory):
     user_id = await db.select([User.user_id]).where(User.user_id == data.user_id).gino.scalar()
     if not user_id:
         return JSONResponse({"error": "User ID does not exists"}, status_code=400)
-    item_id, count = await db.select([Item.id, Item.count]).where(Item.name == data.item_name).gino.first()
+    item_id, count = await db.select([Item.id, Item.count]).where(Item.name == data.item_name.lower()).gino.first()
     if not item_id:
         return JSONResponse({"error": "Item name does not exist"}, status_code=400)
     if count + data.alteration < 0:
@@ -56,8 +56,8 @@ async def save_history(data: SaveHistory):
 
 @app.get("/get_history_by_item_name")
 async def get_history_by_item_id(item_name: str, page: int = 1):
-    response = await db.select([*History, Item.name]).select_from(
-        History.join(Item, History.item_id == Item.id)
+    response = await db.select([History.alteration, History.created_at, Item.name, User.user_id, User.full_name]).select_from(
+        History.join(Item, History.item_id == Item.id).join(User, History.user_id == User.user_id)
     ).where(Item.name == item_name).gino.all()
     count_pages = int(len(response) / 10) if len(response) % 10 == 0 else int(len(response) // 10 + 1)
     return JSONResponse({
@@ -65,6 +65,7 @@ async def get_history_by_item_id(item_name: str, page: int = 1):
         "current_page": page,
         "history": [{
             "user_id": x.user_id,
+            "user_name": x.full_name,
             "item_name": x.name,
             "alteration": x.alteration,
             "created_at": int(x.created_at.timestamp())
@@ -84,3 +85,11 @@ async def get_all_items(page: int = 1):
             "count": x.count
         } for x in response[(page - 1) * 10:page * 10]]
     })
+
+
+@app.get("/check_item_name")
+async def check_item_name(item_name: str):
+    item = await db.select([Item.id]).where(Item.name == item_name).gino.scalar()
+    if item:
+        return JSONResponse({"exists": True})
+    return JSONResponse({"exists": False})

@@ -1,5 +1,4 @@
 import datetime
-import json
 
 from gino import Gino
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
@@ -24,11 +23,6 @@ class User(db.Model):
     user_id = Column(Integer, primary_key=True)
     screen_name = Column(String)
     full_name = Column(String)
-
-    def __init__(self, user_id, screen_name, full_name):
-        self.user_id = user_id
-        self.screen_name = screen_name
-        self.full_name = full_name
 
     def json(self):
         return {"user_id": self.user_id, "screen_name": self.screen_name, "full_name": self.full_name}
