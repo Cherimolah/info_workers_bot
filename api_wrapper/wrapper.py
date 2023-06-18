@@ -2,7 +2,7 @@ import json
 
 from aiohttp import ClientSession
 
-from api_wrapper.serializers import HistoryByItem, AllItems, ExistItem
+from api_wrapper.serializers import HistoryByItem, AllItems, ExistItem, AllUsers, CountItem
 import msgspec
 
 
@@ -40,6 +40,7 @@ class APIWrapper:
     @staticmethod
     def _validate_response(data, model):
         if model:
+            print(data)
             return msgspec.json.decode(data, type=model)
         data = json.loads(data)
         if "error" in data:
@@ -68,3 +69,9 @@ class APIWrapper:
 
     async def check_item_name(self, item_name: str) -> ExistItem:
         return await self._get_request("check_item_name", {"item_name": item_name}, ExistItem)
+
+    async def get_all_user_ids(self) -> AllUsers:
+        return await self._get_request("get_all_user_ids", {}, AllUsers)
+
+    async def get_count_item_name(self, item_name: str) -> CountItem:
+        return await self._get_request("get_count_item", {"item_name": item_name}, CountItem)

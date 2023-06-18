@@ -30,3 +30,16 @@ class AllItems(Struct):
 
 class ExistItem(Struct):
     exists: bool
+
+
+class Users(Struct):
+    user_id: int
+    user_name: str
+
+
+class AllUsers(Struct):
+    user_ids: List[Users]
+
+
+class CountItem(Struct):
+    count: int

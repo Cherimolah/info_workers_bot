@@ -8,7 +8,6 @@ from telegram_bot.filters import PayloadFilter, NumericRule
 from telegram_bot.states import *
 import telegram_bot.keyboards as keyboards
 from async_http_api.loader import api_wrapper
-from api_wrapper.wrapper import APIError
 
 
 @dp.message(CommandStart())
@@ -41,6 +40,8 @@ async def take_from_storage(m: Message, state: FSMContext):
 async def choose_name_to_take(m: Message, state: FSMContext):
     if not (await api_wrapper.check_item_name(m.text.lower())).exists:
         return await m.answer("Введено неверное имя расходника!")
+    if (await api_wrapper.get_count_item_name(m.text.lower())).count == 0:
+        return await m.answer("Расходника на складе нет!")
     await state.update_data(item_name=m.text.lower())
     await state.set_state(TakeFromStorage.count)
     await m.answer("Укажите количество расходника")
@@ -49,13 +50,20 @@ async def choose_name_to_take(m: Message, state: FSMContext):
 @dp.message(TakeFromStorage.count, NumericRule(1))
 async def set_count_to_take(m: Message, state: FSMContext, number: int):
     data = await state.get_data()
-    try:
-        await api_wrapper.save_history(m.from_user.id, data['item_name'], -number)
-    except APIError:
-        return await m.answer("Количество предмета не может стать меньше 0")
+    count = (await api_wrapper.get_count_item_name(data['item_name'].lower())).count
+    if count - number < 0:
+        return await m.answer("Количество предмета не может быть меньше 0\n"
+                       f"Сейчас на складе: {count}")
+    await api_wrapper.save_history(m.from_user.id, data['item_name'], -number)
     await state.clear()
     await m.answer(f"Вы успешно взяли со склада {number}  шт. расходника {data['item_name']}",
                    reply_markup=keyboards.main_menu)
+    user_ids = (await api_wrapper.get_all_user_ids()).user_ids
+    for user in user_ids:
+        await bot.send_message(user.user_id, f"Пользователь [{user.user_name}](tg://user?user_id={user.user_id}) "
+                                     f"взял расходник {data['item_name']} в количестве {number} шт.\n"
+                                             f"Осталось: {count - number}",
+                               parse_mode="Markdown")
 
 
 @dp.message(Text("Положить на склад"))
@@ -81,6 +89,13 @@ async def set_count_to_put(m: Message, state: FSMContext, number: int):
     await state.clear()
     await m.answer(f"Вы успешно положили на склад {number} шт. расходника {data['item_name']}",
                    reply_markup=keyboards.main_menu)
+    count = (await api_wrapper.get_count_item_name(data['item_name'].lower())).count
+    user_ids = (await api_wrapper.get_all_user_ids()).user_ids
+    for user in user_ids:
+        await bot.send_message(user.user_id, f"Пользователь [{user.user_name}](tg://user?user_id={user.user_id}) "
+                                     f"положил на склад расходник {data['item_name']} в количестве {number} шт.\n"
+                                             f"Осталось: {count} шт.",
+                               parse_mode="Markdown")
 
 
 @dp.message(Text("Новый расходник"))

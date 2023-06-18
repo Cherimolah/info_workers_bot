@@ -89,7 +89,22 @@ async def get_all_items(page: int = 1):
 
 @app.get("/check_item_name")
 async def check_item_name(item_name: str):
-    item = await db.select([Item.id]).where(Item.name == item_name).gino.scalar()
+    item = await db.select([Item.id]).where(Item.name == item_name.lower()).gino.scalar()
     if item:
         return JSONResponse({"exists": True})
     return JSONResponse({"exists": False})
+
+
+@app.get("/get_all_user_ids")
+async def get_all_user_ids():
+    user_ids = await db.select([User.user_id, User.full_name]).gino.all()
+    return JSONResponse({"user_ids": [{
+        "user_id": x.user_id,
+        "user_name": x.full_name
+    } for x in user_ids]})
+
+
+@app.get("/get_count_item")
+async def get_count_item(item_name: str):
+    count = await db.select([Item.count]).where(Item.name == item_name.lower()).gino.scalar()
+    return JSONResponse({"count": count})
