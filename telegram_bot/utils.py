@@ -41,7 +41,7 @@ async def send_history(event: Message | CallbackQuery, item_name, payload, page:
     if not data.history:
         return await event.answer("Для данного расходника нет изменений")
     for i, item in enumerate(data.history):
-        reply = f"{reply}{i+1}. [{item.user_id}](tg://user?user_id={item.user_id}) " \
+        reply = f"{reply}{i+1}. [{item.user_name}](tg://user?user_id={item.user_id}) " \
                 f"{'взял' if item.alteration < 0 else 'положил'} в " \
                 f"{datetime.datetime.fromtimestamp(item.created_at).strftime(DATE_FORMAT)}\n"
     await send_pagination(event, data, reply, payload, page, True)
