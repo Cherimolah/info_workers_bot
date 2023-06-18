@@ -160,3 +160,4 @@ cython_debug/
 .idea/
 database.sqlite3
 account.json
+config.ini

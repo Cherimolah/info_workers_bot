@@ -1,3 +1,5 @@
-import os
+from configparser import ConfigParser
 
-BOT_TOKEN = os.getenv("TG_BOT_TOKEN")
+config = ConfigParser()
+config.read("config.ini")
+BOT_TOKEN = config['Telegram']['BOT_TOKEN']
