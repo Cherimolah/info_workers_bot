@@ -32,7 +32,7 @@ async def send_list_items(event: Message | CallbackQuery, payload, page: int = 1
     reply = f"*Спсиок всех расходников и их количество*\n" \
             f"Страница {data.current_page}/{data.count_pages}\n\n"
     for i, item in enumerate(data.items):
-        reply = f"{reply}{i + 1}. {item.item_name} - {item.count}\n"
+        reply = f"{reply}{i + 1}. {item.item_name.title()} - {item.count}\n"
     await send_pagination(event, data, reply, payload, page)
 
 

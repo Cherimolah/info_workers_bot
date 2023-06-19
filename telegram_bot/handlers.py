@@ -59,8 +59,9 @@ async def set_count_to_take(m: Message, state: FSMContext, number: int):
     await m.answer(f"Вы успешно взяли со склада {number}  шт. расходника {data['item_name']}",
                    reply_markup=keyboards.main_menu)
     user_ids = (await api_wrapper.get_all_user_ids()).user_ids
+    chat = await bot.get_chat(m.from_user.id)
     for user in user_ids:
-        await bot.send_message(user.user_id, f"Пользователь [{user.user_name}](tg://user?user_id={user.user_id}) "
+        await bot.send_message(user.user_id, f"Пользователь [{chat.full_name}](tg://user?user_id={chat.id}) "
                                      f"взял расходник {data['item_name']} в количестве {number} шт.\n"
                                              f"Осталось: {count - number}",
                                parse_mode="Markdown")
@@ -91,8 +92,9 @@ async def set_count_to_put(m: Message, state: FSMContext, number: int):
                    reply_markup=keyboards.main_menu)
     count = (await api_wrapper.get_count_item_name(data['item_name'].lower())).count
     user_ids = (await api_wrapper.get_all_user_ids()).user_ids
+    chat = await bot.get_chat(m.from_user.id)
     for user in user_ids:
-        await bot.send_message(user.user_id, f"Пользователь [{user.user_name}](tg://user?user_id={user.user_id}) "
+        await bot.send_message(user.user_id, f"Пользователь [{chat.full_name}](tg://user?user_id={chat.id}) "
                                      f"положил на склад расходник {data['item_name']} в количестве {number} шт.\n"
                                              f"Осталось: {count} шт.",
                                parse_mode="Markdown")
