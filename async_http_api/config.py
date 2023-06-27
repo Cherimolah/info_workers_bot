@@ -1,10 +1,10 @@
-from configparser import ConfigParser
+import os
+from dotenv import load_dotenv
 
-config = ConfigParser()
-config.read("config.ini")
-database = config['Database']
-USER = database['USER']
-PASSWORD = database['PASSWORD']
-HOST = database['HOST']
-PORT = database['PORT']
-DATABASE = database['DATABASE']
+load_dotenv(".env")
+
+USER = os.getenv("USER_NAME")
+PASSWORD = os.getenv("PASSWORD")
+HOST = os.getenv("HOST")
+PORT = os.getenv("PORT")
+DATABASE = os.getenv("DATABASE_NAME")

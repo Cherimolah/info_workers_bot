@@ -1,6 +1,6 @@
-from configparser import ConfigParser
+import os
+from dotenv import load_dotenv, find_dotenv
 
-config = ConfigParser()
-config.read("config.ini")
-BOT_TOKEN = config['Telegram']['BOT_TOKEN']
-ADMIN_IDS = config['Telegram']['ADMIN_IDS'].split(",")
+load_dotenv("/home/ilya/PycharmProjects/info_workers_bot/.env")
+
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
